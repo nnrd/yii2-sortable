@@ -95,11 +95,13 @@ abstract class BaseNumericalSortableBehavior extends BaseSortableBehavior
         }
 
         $prevModel = $this->findModel($pk);
+        $thisPosition = $this->getSortablePosition();
+        $prevPosition = $prevModel->getSortablePosition();
 
-        if ($this->getSortablePosition() > $prevModel->getSortablePosition()) {
-            $position = $prevModel->getSortablePosition();
+        if ($thisPosition > $prevPosition) {
+            $position = $prevPosition;
         } else {
-            $position = $prevModel->getSortablePosition() - 1;
+            $position = $prevPosition - 1;
         }
 
         $this->moveToPosition($position);
@@ -117,11 +119,13 @@ abstract class BaseNumericalSortableBehavior extends BaseSortableBehavior
         }
 
         $nextModel = $this->findModel($pk);
+        $thisPosition = $this->getSortablePosition();
+        $nextPosition = $nextModel->getSortablePosition();
 
-        if ($this->getSortablePosition() > $nextModel->getSortablePosition()) {
-            $position = $nextModel->getSortablePosition() + 1;
+        if ($thisPosition > $nextPosition) {
+            $position = $nextPosition + 1;
         } else {
-            $position = $nextModel->getSortablePosition();
+            $position = $nextPosition;
         }
 
         $this->moveToPosition($position);
@@ -250,6 +254,7 @@ abstract class BaseNumericalSortableBehavior extends BaseSortableBehavior
      */
     protected function findModel($pk)
     {
+        if ($pk instanceof \yii\base\Model) return $pk;
         $model = $this->query->andWhere($this->getPkCondition($pk))->one();
 
         if (!$model) {
