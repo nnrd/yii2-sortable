@@ -6,6 +6,14 @@ use yii\db\ActiveRecord;
 
 class ContinuousNumericalSortableBehavior extends BaseNumericalSortableBehavior
 {
+
+    /**
+     * Flag to use raw sql to update models sort
+     *
+     * @var bool $sqlUpdate
+     */
+    public $sqlUpdate = true;
+
     /**
      * @var boolean
      */
@@ -82,22 +90,28 @@ class ContinuousNumericalSortableBehavior extends BaseNumericalSortableBehavior
             $oldSortFrom = $position;
             $oldSortTo = $currentPosition - 1;
             $addedValue = 1;
-        } else {
+        } elseif ($position > $currentPosition) {
             // Moving back
             $oldSortFrom = $currentPosition + 1;
             $oldSortTo = $position;
             $addedValue = -1;
+        } else {
+            return;
         }
 
-        $models = $this->query
-            ->andWhere(['>=', $this->sortAttribute, $oldSortFrom])
-            ->andWhere(['<=', $this->sortAttribute, $oldSortTo])
-            ->andWhere(['<>', $this->sortAttribute, $currentPosition])
-            ->all();
+        if ( $this->sqlUpdate ) {
+            $this->updateSql($this->model, $addedValue, $oldSortFrom, $oldSortTo);
+        } else {
+            $models = $this->query
+                ->andWhere(['>=', $this->sortAttribute, $oldSortFrom])
+                ->andWhere(['<=', $this->sortAttribute, $oldSortTo])
+                ->andWhere(['<>', $this->sortAttribute, $currentPosition])
+                ->all();
 
-        foreach ($models as $model) {
-            $sort = $model->getSort() + $addedValue;
-            $model->updateAttributes([$this->sortAttribute => $sort]);
+            foreach ($models as $model) {
+                $sort = $model->getSort() + $addedValue;
+                $model->updateAttributes([$this->sortAttribute => $sort]);
+            }
         }
 
         $this->model->updateAttributes([$this->sortAttribute => $position]);
@@ -136,5 +150,15 @@ class ContinuousNumericalSortableBehavior extends BaseNumericalSortableBehavior
     {
         $this->resolveConflict(1, false);
         $this->setSort($this->getInitialSortByPosition(1));
+    }
+
+    protected function updateSql($model, $inc, $from, $to)
+    {
+        $command = \Yii::$app->db
+            ->createCommand("UPDATE {$model->tableName()} SET {$this->sortAttribute} = {$this->sortAttribute} + :inc WHERE {$this->sortAttribute} >= :from AND {$this->sortAttribute} <= :to")
+            ->bindValue(':inc', $inc)
+            ->bindValue(':from', $from)
+            ->bindValue(':to', $to);
+        $command->execute();
     }
 }
