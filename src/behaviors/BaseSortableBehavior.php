@@ -33,6 +33,13 @@ abstract class BaseSortableBehavior extends Behavior
     public $access;
 
     /**
+     * Check range on model changing sorting
+     *
+     * @var bool $checkRange
+     */
+    public $checkRange = false;
+
+    /**
      * @var \yii\db\ActiveRecord
      */
     protected $_oldModel;
@@ -62,7 +69,7 @@ abstract class BaseSortableBehavior extends Behavior
     {
         $position = (int) $position;
 
-        if ($position < 1 || $position > $this->getSortableCount()) {
+        if ( $this->checkRange && ($position < 1 || $position > $this->getSortableCount()) ) {
             throw new InvalidParamException("Position must be a number between 1 and {$this->getSortableCount()}.");
         }
 
